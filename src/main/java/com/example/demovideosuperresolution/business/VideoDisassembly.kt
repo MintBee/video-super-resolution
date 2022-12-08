@@ -24,7 +24,6 @@ class VideoDisassembly(
     }
 
     private suspend fun splitVideo(video: Video): Flow<RPCVideo> {
-        buffer.clear()
         val metadata = VideoFactory.VideoMetadata.newBuilder()
                 .setName(video.name).build()
 
@@ -32,15 +31,14 @@ class VideoDisassembly(
         return flow<RPCVideo> {
             emit(RPCVideo.newBuilder().setMetadata(metadata).build())
 
-            buffer.put(video.data.sliceArray())
+            for (startIdx in generateSequence(1, Int::inc).map { it * 32000 }) {
+                val endIdx =
+            }
+
 
         }
 
 
-    }
-
-    companion object {
-        @JvmStatic val buffer: ByteBuffer = ByteBuffer.allocate(32000)
     }
 }
 
