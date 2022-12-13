@@ -2,43 +2,38 @@ package com.example.demovideosuperresolution.business
 
 import com.example.demovideosuperresolution.entities.Video
 
-import VideoFactory.Box
+
+import com.example.demovideosuperresolution.VideoAssemblyGrpcKt
+import com.example.demovideosuperresolution.mappers.Video_to_GrpcVideoMapper
+import com.example.demovideosuperresolution.VideoDataStructures as Grpc
 
 import io.grpc.ManagedChannel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.future.future
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.stereotype.Service
+import org.springframework.stereotype.Component
+import java.util.concurrent.CompletableFuture
 
 
-@Service
+@Component
 class VideoAssembly(
         @Autowired
         @Qualifier("assemblerChannel")
         val channel: ManagedChannel
 ){
-    suspend fun assemble(boxFlow: Flow<Box>): Video {
+    suspend fun assemble(boxFlow: Flow<Grpc.Box>): Video {
         val stub = VideoAssemblyGrpcKt.VideoAssemblyCoroutineStub(channel)
-        val grpcVideo = stub.assembleVideo(boxFlow)
-        return collectVideo(grpcVideo)
+        val grpcVideoFlow = stub.assembleVideo(boxFlow)
+        return Video_to_GrpcVideoMapper.mapToEntity(grpcVideoFlow)
     }
 
-    private suspend fun collectVideo(videoParts: Flow<VideoFactory.Video>): Video {
-        val videoPartsConcat = mutableListOf<Byte>()
-        val video = Video()
-        videoParts.map {
-            when (it.dataCase) {
-                VideoFactory.Video.DataCase.METADATA -> {
-                    video.name = it.metadata.name
-                }
-                VideoFactory.Video.DataCase.PART -> {
-                    videoPartsConcat.addAll(it.part)
-                }
-                VideoFactory.Video.DataCase.DATA_NOT_SET, null -> {
-                }
-            }
-        }.collect()
-        video.data = videoPartsConcat.toByteArray()
-        return video
+    fun assemble(boxList: List<Grpc.Box>): CompletableFuture<Video> {
+        return CoroutineScope(Dispatchers.IO).future {
+            assemble(boxList.asFlow())
+        }
     }
 }

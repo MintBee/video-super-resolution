@@ -15,6 +15,4 @@ public interface VideoRepository extends JpaRepository<Video, Long> {
 
     @Query(nativeQuery = true, value = "SELECT name FROM video")
     List<String> getAllNames();
-
-
 }

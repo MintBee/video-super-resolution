@@ -1,0 +1,8 @@
+syntax = "proto3";
+import "video-data-structures.proto";
+
+option java_package = "com.example.demovideosuperresolution";
+
+service BoxSuperResolution {
+  rpc InferBoxes(stream Box) returns (stream Box);
+}
